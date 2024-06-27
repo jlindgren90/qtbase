@@ -2403,7 +2403,12 @@ void QMenuPrivate::popup(const QPoint &p, QAction *atAction, PositionFunction po
         pos = positionFunction(menuSizeHint);
 
     const int desktopFrame = q->style()->pixelMetric(QStyle::PM_MenuDesktopFrameWidth, nullptr, q);
-    bool adjustToDesktop = !q->window()->testAttribute(Qt::WA_DontShowOnScreen);
+
+    // On Wayland, global coordinates are relative to the application window rather than the true
+    // desktop/screen geometry. Therefore we cannot adjust for screen edges correctly on the
+    // application side -- this is left up to the compositor.
+    bool adjustToDesktop = !q->window()->testAttribute(Qt::WA_DontShowOnScreen) &&
+        !qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
 
     // if the screens have very different geometries and the menu is too big, we have to recalculate
     if ((size.height() > screen.height() || size.width() > screen.width()) ||
