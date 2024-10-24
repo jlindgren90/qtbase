@@ -2921,7 +2921,9 @@ void QMenu::mouseReleaseEvent(QMouseEvent *e)
     Q_D(QMenu);
     if (d->aboutToHide || d->mouseEventTaken(e))
         return;
-    if (QMenuPrivate::mouseDown != this) {
+    // On Wayland, mouseMoveEvent does not correctly report buttons pressed if the pointer entered
+    // the menu with buttons already pressed. In that case, mouseDown is not set correctly.
+    if (QMenuPrivate::mouseDown != this && !qApp->nativeInterface<QNativeInterface::QWaylandApplication>()) {
         QMenuPrivate::mouseDown = nullptr;
         return;
     }
