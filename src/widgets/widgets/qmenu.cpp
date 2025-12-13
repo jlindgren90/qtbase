@@ -2926,17 +2926,24 @@ void QMenu::mouseReleaseEvent(QMouseEvent *e)
     Q_D(QMenu);
     if (d->aboutToHide || d->mouseEventTaken(e))
         return;
-    if (QMenuPrivate::mouseDown != this) {
-        QMenuPrivate::mouseDown = nullptr;
+
+    bool wasMouseDown = (QMenuPrivate::mouseDown == this);
+    QMenuPrivate::mouseDown = nullptr;
+
+    // Ignore the release if the mouse button was not pressed or held over this
+    // menu. Note that on Wayland, buttons originally pressed over a different
+    // surface are not reported to mouseMoveEvent(). In that case, wasMouseDown
+    // will be false, so we also check the current mouse position.
+    if (!wasMouseDown && !rect().contains(e->position().toPoint())) {
         return;
     }
 
-    QMenuPrivate::mouseDown = nullptr;
     d->setSyncAction();
 
-    if (!d->hasMouseMoved(e->globalPosition().toPoint())) {
+    if (wasMouseDown && !d->hasMouseMoved(e->globalPosition().toPoint())) {
         // We don't want to trigger a menu item if the mouse hasn't moved
         // since the popup was opened. Instead we want to close the menu.
+        // Only do this if originally pressed on this menu (wasMouseDown).
         d->hideUpToMenuBar();
         return;
     }
@@ -2950,7 +2957,7 @@ void QMenu::mouseReleaseEvent(QMouseEvent *e)
 #endif
                 d->activateAction(action, QAction::Trigger);
         }
-    } else if (!action || (action->isEnabled() && !action->isSeparator())) {
+    } else if (wasMouseDown && (!action || (action->isEnabled() && !action->isSeparator()))) {
         d->hideUpToMenuBar();
     }
 }
